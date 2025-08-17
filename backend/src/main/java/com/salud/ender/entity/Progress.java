@@ -1,4 +1,4 @@
-package main.java.com.salud.ender.entity;
+package com.salud.ender.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -16,12 +16,21 @@ public class Progress {
     private Date fecha;
 
     // Getters and Setters
+
     public Long getId() { return id; }
+
     public void setId(Long id) { this.id = id; }
+
     public Double getPeso() { return peso; }
+
     public void setPeso(Double peso) { this.peso = peso; }
+
     public Double getGasto() { return gasto; }
+
     public void setGasto(Double gasto) { this.gasto = gasto; }
+
     public Date getFecha() { return fecha; }
+
     public void setFecha(Date fecha) { this.fecha = fecha; }
+
 }
