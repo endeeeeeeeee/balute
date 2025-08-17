@@ -9,14 +9,22 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/") // El @RequestMapping ahora maneja la ruta raíz
 @CrossOrigin(origins = "*")
 public class ProgressController {
 
     @Autowired
     private ProgressRepository progressRepository;
 
-    @PostMapping("/progress")
+    // Endpoint para verificar que el servicio está activo
+    // Responde a la URL raíz del servicio, por ejemplo, "https://<tu-app>.onrender.com/"
+    @GetMapping
+    public String getStatus() {
+        return "El servicio de seguimiento de progreso está en funcionamiento. Puedes acceder a los endpoints en /api/progress";
+    }
+
+    // Endpoint para guardar el progreso
+    @PostMapping("/api/progress")
     public String saveProgress(@RequestBody Map<String, Object> payload) {
         Progress progress = new Progress();
         progress.setPeso(Double.parseDouble(payload.get("peso").toString()));
@@ -27,7 +35,8 @@ public class ProgressController {
         return "Progreso guardado con éxito!";
     }
 
-    @GetMapping("/progress")
+    // Endpoint para obtener todos los registros de progreso
+    @GetMapping("/api/progress")
     public List<Progress> getAllProgress() {
         return progressRepository.findAll();
     }
