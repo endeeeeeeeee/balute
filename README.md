@@ -1,4 +1,4 @@
-# 🚀 Salud Ender
+# balute
 
 Mi sistema personal de gestión de salud física, construido con un backend de Java, un frontend estático y una base de datos MySQL, todo gestionado con Docker.
 
