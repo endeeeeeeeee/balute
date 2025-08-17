@@ -1,4 +1,4 @@
-package main.java.com.salud.ender;
+package com.salud.ender;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
