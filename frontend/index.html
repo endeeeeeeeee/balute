@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Salud Ender</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>🎯 Mi Transformación Física</h1>
+  </header>
+  <main>
+    <section class="card">
+      <h2>📅 Registro de Hoy</h2>
+      <div id="daily-log">
+        <p><strong>Fecha:</strong> <span id="fecha-actual"></span></p>
+        <div class="input-group">
+          <label for="peso">Peso (kg):</label>
+          <input type="number" id="peso" placeholder="ej. 70.5">
+        </div>
+        <div class="input-group">
+          <label for="gasto">Gasto (Bs):</label>
+          <input type="number" id="gasto" placeholder="ej. 45">
+        </div>
+        <button onclick="guardarProgreso()">Guardar Progreso</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>📈 Estadísticas</h2>
+      <div id="stats">
+        <p><strong>Último Peso Registrado:</strong> <span id="ultimo-peso">N/A</span></p>
+        <p><strong>Gasto Total Semanal:</strong> <span id="gasto-semanal">N/A</span> Bs</p>
+      </div>
+    </section>
+  </main>
+  <script src="js/main.js"></script>
+</body>
+</html>

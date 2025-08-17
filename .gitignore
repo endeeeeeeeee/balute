@@ -1,0 +1,8 @@
+target/
+.DS_Store
+*.iml
+.idea/
+.mvn/
+*.class
+Dockerfile*
+!**/Dockerfile
