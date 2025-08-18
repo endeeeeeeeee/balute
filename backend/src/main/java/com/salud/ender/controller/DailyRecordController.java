@@ -23,3 +23,5 @@ public class DailyRecordController {
         return dailyRecordRepository.findAll();
     }
 }
+
+
