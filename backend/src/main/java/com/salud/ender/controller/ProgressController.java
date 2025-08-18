@@ -4,6 +4,10 @@ import com.salud.ender.entity.Progress;
 import com.salud.ender.repository.ProgressRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.context.annotation.Bean;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -39,5 +43,16 @@ public class ProgressController {
     @GetMapping("/api/progress")
     public List<Progress> getAllProgress() {
         return progressRepository.findAll();
+    }
+
+    // Configuración global de CORS
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                registry.addMapping("/**").allowedOrigins("*");
+            }
+        };
     }
 }

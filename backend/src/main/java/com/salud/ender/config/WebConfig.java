@@ -22,4 +22,3 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedHeaders("*"); // Permite todas las cabeceras HTTP en las peticiones
     }
 }
-
