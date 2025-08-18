@@ -165,6 +165,38 @@
       <h2 class="subtitle">Lista de Horarios</h2>
       <ul id="lista-schedules" class="progress-list"></ul>
     </section>
+
+    <!-- SEGUIMIENTO DIARIO -->
+    <section class="section">
+      <h2 class="subtitle">Registrar Seguimiento Diario</h2>
+      <form id="daily-record-form" class="form">
+        <div class="form-group">
+          <label for="feeling">¿Cómo me sentí hoy? (1-5)</label>
+          <input type="number" id="feeling" min="1" max="5" required>
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" id="backPain"> ¿Tuve dolor de espalda?</label>
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" id="ateWell"> ¿Cumplo con alimentación?</label>
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" id="trained"> ¿Entrené?</label>
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" id="drankWater"> ¿Tomé 1.5 L de agua?</label>
+        </div>
+        <div class="form-group">
+          <label for="notes">Notas</label>
+          <input type="text" id="notes" placeholder="Notas">
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar Seguimiento</button>
+      </form>
+    </section>
+    <section class="section">
+      <h2 class="subtitle">Registros Diarios</h2>
+      <div id="records-display"></div>
+    </section>
   </div>
   <script src="js/main.js"></script>
 </body>

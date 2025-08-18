@@ -3,49 +3,47 @@
 
 // La URL base de tu backend en Render.
 // Es crucial que esta URL sea la misma que la de tu servicio desplegado.
+
+const API_SLEEPS = 'https://salud-ender.onrender.com/api/sleeps';
+
+
+const API_MEALS = 'https://salud-ender.onrender.com/api/meals';
+const API_WORKOUTS = 'https://salud-ender.onrender.com/api/workouts';
+const API_SCHEDULES = 'https://salud-ender.onrender.com/api/schedules';
 const API_URL = 'https://salud-ender.onrender.com/api/progress';
+
+const API_GASTOS = 'https://salud-ender.onrender.com/api/expenses';
 
 
 
 // Espera a que el DOM (el HTML) esté completamente cargado.
 document.addEventListener('DOMContentLoaded', () => {
-    // Obtener el formulario de seguimiento diario por su ID.
+    // SEGUIMIENTO DIARIO
     const dailyRecordForm = document.getElementById('daily-record-form');
-
-    // Obtener el contenedor donde se mostrarán los registros.
     const recordsDisplay = document.getElementById('records-display');
-
-    // Cargar y mostrar los registros al inicio.
-    fetchDailyRecords();
-
-    // Añadir un "listener" al formulario para manejar el evento de envío.
-    dailyRecordForm.addEventListener('submit', async (e) => {
-        // Prevenir el comportamiento por defecto del formulario (recargar la página).
-        e.preventDefault();
-
-        // Obtener los datos del formulario.
-        const formData = {
-            feeling: parseInt(document.getElementById('feeling').value, 10),
-            backPain: document.getElementById('backPain').checked,
-            ateWell: document.getElementById('ateWell').checked,
-            trained: document.getElementById('trained').checked,
-            drankWater: document.getElementById('drankWater').checked,
-            notes: document.getElementById('notes').value
-        };
-
-        // Enviar los datos al backend usando la función saveDailyRecord.
-        try {
-            await saveDailyRecord(formData);
-            // Si la llamada fue exitosa, recargar los registros para mostrar el nuevo.
-            fetchDailyRecords();
-            // Limpiar el formulario para un nuevo registro.
-            dailyRecordForm.reset();
-            alert('¡Registro guardado con éxito!');
-        } catch (error) {
-            console.error('Error al guardar el registro:', error);
-            alert('Hubo un error al guardar el registro. Por favor, inténtalo de nuevo.');
-        }
-    });
+    if (dailyRecordForm && recordsDisplay) {
+        fetchDailyRecords();
+        dailyRecordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = {
+                feeling: parseInt(document.getElementById('feeling').value, 10),
+                backPain: document.getElementById('backPain').checked,
+                ateWell: document.getElementById('ateWell').checked,
+                trained: document.getElementById('trained').checked,
+                drankWater: document.getElementById('drankWater').checked,
+                notes: document.getElementById('notes').value
+            };
+            try {
+                await saveDailyRecord(formData);
+                fetchDailyRecords();
+                dailyRecordForm.reset();
+                alert('¡Registro guardado con éxito!');
+            } catch (error) {
+                console.error('Error al guardar el registro:', error);
+                alert('Hubo un error al guardar el registro. Por favor, inténtalo de nuevo.');
+            }
+        });
+    }
 
     /**
      * Guarda un nuevo registro diario en el backend.
@@ -53,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function saveDailyRecord(data) {
         // Enviar una solicitud POST al backend con los datos del formulario.
-        const response = await fetch(API_BASE_URL, {
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -78,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchDailyRecords() {
         try {
             // Obtener una lista de todos los registros.
-            const response = await fetch(API_BASE_URL);
+            const response = await fetch(API_URL);
             
             // Si la respuesta no fue exitosa, lanzar un error.
             if (!response.ok) {
@@ -130,40 +128,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
-const API_GASTOS = 'https://salud-ender.onrender.com/api/expenses';
+
+
 
 let gastoEditandoId = null;
 
 // Modifica el submit del formulario de gastos
 const gastoForm = document.getElementById('gasto-form');
-gastoForm.addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const data = {
-    fecha: document.getElementById('gasto-fecha').value,
-    concepto: document.getElementById('gasto-concepto').value,
-    cantidad: document.getElementById('gasto-cantidad').value,
-    tipo: document.getElementById('gasto-tipo').value
-  };
-  if (gastoEditandoId) {
-    // EDITAR
-    await fetch(`${API_GASTOS}/${gastoEditandoId}`, {
-      method: 'PUT',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(data)
-    });
-    gastoEditandoId = null;
-    this.querySelector('button[type=submit]').textContent = 'Guardar Gasto';
-  } else {
-    // NUEVO
-    await fetch(API_GASTOS, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(data)
-    });
-  }
-  cargarGastos();
-  this.reset();
-});
+if (gastoForm) {
+  gastoForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const data = {
+      fecha: document.getElementById('gasto-fecha').value,
+      concepto: document.getElementById('gasto-concepto').value,
+      cantidad: document.getElementById('gasto-cantidad').value,
+      tipo: document.getElementById('gasto-tipo').value
+    };
+    if (gastoEditandoId) {
+      // EDITAR
+      await fetch(`${API_GASTOS}/${gastoEditandoId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+      gastoEditandoId = null;
+      this.querySelector('button[type=submit]').textContent = 'Guardar Gasto';
+    } else {
+      // NUEVO
+      await fetch(API_GASTOS, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+    }
+    cargarGastos();
+    this.reset();
+  });
+}
 
 // --- GASTOS: Edición, eliminación y exportar a CSV ---
 
@@ -308,24 +309,26 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- Repite el patrón para Meals, Workouts, Sleeps, Schedules ---
 // (Por brevedad, solo muestro el patrón para gastos, pero puedes copiarlo para los demás módulos)
 
-const API_MEALS = 'https://salud-ender.onrender.com/api/meals';
 
-document.getElementById('meal-form').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const data = {
-    fecha: document.getElementById('meal-fecha').value,
-    desayuno: document.getElementById('meal-desayuno').value,
-    almuerzo: document.getElementById('meal-almuerzo').value,
-    cena: document.getElementById('meal-cena').value,
-    snacks: document.getElementById('meal-snacks').value
-  };
-  await fetch(API_MEALS, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(data)
+
+if (document.getElementById('meal-form')) {
+  document.getElementById('meal-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const data = {
+      fecha: document.getElementById('meal-fecha').value,
+      desayuno: document.getElementById('meal-desayuno').value,
+      almuerzo: document.getElementById('meal-almuerzo').value,
+      cena: document.getElementById('meal-cena').value,
+      snacks: document.getElementById('meal-snacks').value
+    };
+    await fetch(API_MEALS, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    cargarMeals();
   });
-  cargarMeals();
-});
+}
 
 // --- GRÁFICOS PARA OTROS MÓDULOS ---
 
@@ -425,24 +428,26 @@ async function cargarSleeps() {
 }
 cargarSleeps();
 
-const API_SCHEDULES = 'https://salud-ender.onrender.com/api/schedules';
 
-document.getElementById('schedule-form').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const data = {
-    dia: document.getElementById('schedule-dia').value,
-    actividad: document.getElementById('schedule-actividad').value,
-    horaInicio: document.getElementById('schedule-hora-inicio').value,
-    horaFin: document.getElementById('schedule-hora-fin').value,
-    tipo: document.getElementById('schedule-tipo').value
-  };
-  await fetch(API_SCHEDULES, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(data)
+
+if (document.getElementById('schedule-form')) {
+  document.getElementById('schedule-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const data = {
+      dia: document.getElementById('schedule-dia').value,
+      actividad: document.getElementById('schedule-actividad').value,
+      horaInicio: document.getElementById('schedule-hora-inicio').value,
+      horaFin: document.getElementById('schedule-hora-fin').value,
+      tipo: document.getElementById('schedule-tipo').value
+    };
+    await fetch(API_SCHEDULES, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    cargarSchedules();
   });
-  cargarSchedules();
-});
+}
 
 async function cargarSchedules() {
   const res = await fetch(API_SCHEDULES);
