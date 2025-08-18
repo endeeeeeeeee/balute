@@ -3,43 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seguimiento de Progreso</title>
-    <!-- Enlaza el archivo CSS para el estilo -->
+    <title>SALUD ENDER - SISTEMA INTEGRAL</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1 class="title">Seguimiento de Progreso</h1>
-
-        <!-- Formulario para agregar nuevo progreso -->
-        <div class="section">
-            <h2 class="subtitle">Añadir Nuevo Registro</h2>
-            <form id="progressForm" class="form">
-                <div class="form-group">
-                    <label for="peso">Peso (kg)</label>
-                    <input type="number" id="peso" name="peso" step="0.1" required>
-                </div>
-                <div class="form-group">
-                    <label for="gasto">Gasto Calórico (kcal)</label>
-                    <input type="number" id="gasto" name="gasto" required>
-                </div>
-                <button type="submit" class="btn btn-primary">
-                    Guardar Progreso
-                </button>
-            </form>
+  <div class="container">
+    <h1 class="title">SALUD ENDER - SISTEMA INTEGRAL</h1>
+    <p>📅 Última actualización: 18/04/2025</p>
+    <p>📱 Acceso: https://salud-ender.onrender.com</p>
+    <p>🎯 Meta: Ganar masa muscular, mejorar postura, corregir asimetría, no rendirse</p>
+    
+    <!-- GASTOS -->
+    <section class="section">
+      <h2 class="subtitle">Registrar Gasto</h2>
+      <form id="gasto-form" class="form">
+        <div class="form-group">
+          <label for="gasto-fecha">Fecha</label>
+          <input type="date" id="gasto-fecha" required>
         </div>
-
-        <!-- Sección para mostrar el progreso existente -->
-        <div class="section">
-            <h2 class="subtitle">Registros Anteriores</h2>
-            <ul id="progressList" class="progress-list">
-                <!-- Los registros de progreso se insertarán aquí por JavaScript -->
-                <li class="loading-message">Cargando datos...</li>
-            </ul>
+        <div class="form-group">
+          <label for="gasto-concepto">Concepto</label>
+          <input type="text" id="gasto-concepto" placeholder="Concepto" required>
         </div>
-    </div>
+        <div class="form-group">
+          <label for="gasto-cantidad">Cantidad (Bs)</label>
+          <input type="number" id="gasto-cantidad" placeholder="Cantidad (Bs)" required>
+        </div>
+        <div class="form-group">
+          <label for="gasto-tipo">Tipo</label>
+          <input type="text" id="gasto-tipo" placeholder="Tipo (alimentacion, gym, etc.)" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar Gasto</button>
+      </form>
+    </section>
+    <section class="section">
+      <h2 class="subtitle">Lista de Gastos</h2>
+      <ul id="lista-gastos" class="progress-list"></ul>
+      <canvas id="gastosChart" width="400" height="200"></canvas>
+    </section>
 
-    <!-- Enlaza el archivo JavaScript para la funcionalidad -->
-    <script src="js/main.js"></script>
+    <!-- COMIDAS -->
+    <section class="section">
+      <h2 class="subtitle">Registrar Comidas</h2>
+      <form id="meal-form" class="form">
+        <div class="form-group">
+          <label for="meal-fecha">Fecha</label>
+          <input type="date" id="meal-fecha" required>
+        </div>
+        <div class="form-group">
+          <label for="meal-desayuno">Desayuno</label>
+          <input type="text" id="meal-desayuno" placeholder="Desayuno" required>
+        </div>
+        <div class="form-group">
+          <label for="meal-almuerzo">Almuerzo</label>
+          <input type="text" id="meal-almuerzo" placeholder="Almuerzo" required>
+        </div>
+        <div class="form-group">
+          <label for="meal-cena">Cena</label>
+          <input type="text" id="meal-cena" placeholder="Cena" required>
+        </div>
+        <div class="form-group">
+          <label for="meal-snacks">Snacks</label>
+          <input type="text" id="meal-snacks" placeholder="Snacks" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar Comidas</button>
+      </form>
+    </section>
+    <section class="section">
+      <h2 class="subtitle">Lista de Comidas</h2>
+      <ul id="lista-meals" class="progress-list"></ul>
+      <canvas id="mealsChart" width="400" height="200"></canvas>
+    </section>
+
+    <!-- ENTRENAMIENTOS -->
+    <section class="section">
+      <h2 class="subtitle">Registrar Entrenamiento</h2>
+      <form id="workout-form" class="form">
+        <div class="form-group">
+          <label for="workout-fecha">Fecha</label>
+          <input type="date" id="workout-fecha" required>
+        </div>
+        <div class="form-group">
+          <label for="workout-tipo">Tipo</label>
+          <input type="text" id="workout-tipo" placeholder="Tipo (ej: Gym, Cardio)" required>
+        </div>
+        <div class="form-group">
+          <label for="workout-duracion">Duración</label>
+          <input type="text" id="workout-duracion" placeholder="Duración (ej: 1h)" required>
+        </div>
+        <div class="form-group">
+          <label for="workout-notas">Notas</label>
+          <input type="text" id="workout-notas" placeholder="Notas">
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar Entrenamiento</button>
+      </form>
+    </section>
+    <section class="section">
+      <h2 class="subtitle">Lista de Entrenamientos</h2>
+      <ul id="lista-workouts" class="progress-list"></ul>
+      <canvas id="workoutsChart" width="400" height="200"></canvas>
+    </section>
+
+    <!-- SUEÑO -->
+    <section class="section">
+      <h2 class="subtitle">Registrar Sueño</h2>
+      <form id="sleep-form" class="form">
+        <div class="form-group">
+          <label for="sleep-fecha">Fecha</label>
+          <input type="date" id="sleep-fecha" required>
+        </div>
+        <div class="form-group">
+          <label for="sleep-horas">Horas dormidas</label>
+          <input type="number" step="0.1" id="sleep-horas" placeholder="Horas dormidas" required>
+        </div>
+        <div class="form-group">
+          <label for="sleep-acostarse">Hora de acostarse</label>
+          <input type="time" id="sleep-acostarse" placeholder="Hora de acostarse" required>
+        </div>
+        <div class="form-group">
+          <label for="sleep-levantarse">Hora de levantarse</label>
+          <input type="time" id="sleep-levantarse" placeholder="Hora de levantarse" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar Sueño</button>
+      </form>
+    </section>
+    <section class="section">
+      <h2 class="subtitle">Lista de Sueño</h2>
+      <ul id="lista-sleeps" class="progress-list"></ul>
+      <canvas id="sleepsChart" width="400" height="200"></canvas>
+    </section>
+
+    <!-- HORARIOS -->
+    <section class="section">
+      <h2 class="subtitle">Registrar Horario/Actividad</h2>
+      <form id="schedule-form" class="form">
+        <div class="form-group">
+          <label for="schedule-dia">Día</label>
+          <input type="text" id="schedule-dia" placeholder="Día" required>
+        </div>
+        <div class="form-group">
+          <label for="schedule-actividad">Actividad</label>
+          <input type="text" id="schedule-actividad" placeholder="Actividad" required>
+        </div>
+        <div class="form-group">
+          <label for="schedule-hora-inicio">Hora inicio</label>
+          <input type="time" id="schedule-hora-inicio" placeholder="Hora inicio" required>
+        </div>
+        <div class="form-group">
+          <label for="schedule-hora-fin">Hora fin</label>
+          <input type="time" id="schedule-hora-fin" placeholder="Hora fin" required>
+        </div>
+        <div class="form-group">
+          <label for="schedule-tipo">Tipo</label>
+          <input type="text" id="schedule-tipo" placeholder="Tipo (clase, entrenamiento, etc.)" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar Horario</button>
+    </form>
+    </section>
+    <section class="section">
+      <h2 class="subtitle">Lista de Horarios</h2>
+      <ul id="lista-schedules" class="progress-list"></ul>
+    </section>
+  </div>
+  <script src="js/main.js"></script>
 </body>
 </html>
