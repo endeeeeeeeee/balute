@@ -1,19 +1,19 @@
-# 💰 Control de Finanzas (Balute)
+#  Control de Finanzas (Balute)
 
 Una aplicación web moderna y robusta para la gestión de finanzas personales. Diseñada para ser segura, rápida y fácil de usar tanto en móviles como en escritorio.
 
 🔗 **Demo en Vivo:** [https://balute-37f93.web.app](https://balute-37f93.web.app)
 
-## ✨ Características Principales
+##  Características Principales
 
-*   **🔐 Arquitectura Multi-Usuario:** Cada usuario tiene su propia "billetera" privada e independiente. El registro es abierto y seguro.
-*   **👀 Modo Espectador (Viewer):** Comparte tus finanzas en modo "solo lectura" con familiares o socios sin compartir tu contraseña.
-*   **📊 Dashboard Inteligente:** Visualiza tu balance, gastos del mes y progreso hacia tu objetivo mensual de un vistazo.
-*   **📥 Exportación Avanzada:** Genera reportes detallados en Excel (.xlsx) por Semana o Mes, incluyendo resúmenes por categoría.
-*   **📱 Mobile-First:** Interfaz optimizada para funcionar como una app nativa en tu celular.
-*   **☁️ Cloud Sync:** Tus datos están sincronizados en tiempo real gracias a Firebase.
+*   ** Arquitectura Multi-Usuario:** Cada usuario tiene su propia "billetera" privada e independiente. El registro es abierto y seguro.
+*   ** Modo Espectador (Viewer):** Comparte tus finanzas en modo "solo lectura" con familiares o socios sin compartir tu contraseña.
+*   ** Dashboard Inteligente:** Visualiza tu balance, gastos del mes y progreso hacia tu objetivo mensual de un vistazo.
+*   ** Exportación Avanzada:** Genera reportes detallados en Excel (.xlsx) por Semana o Mes, incluyendo resúmenes por categoría.
+*   ** Mobile-First:** Interfaz optimizada para funcionar como una app nativa en tu celular.
+*   ** Cloud Sync:** Tus datos están sincronizados en tiempo real gracias a Firebase.
 
-## 🛠️ Tecnologías
+##  Tecnologías
 
 *   **Frontend:** React.js
 *   **Estilos:** Tailwind CSS
@@ -22,7 +22,7 @@ Una aplicación web moderna y robusta para la gestión de finanzas personales. D
 *   **Autenticación:** Firebase Auth
 *   **Hosting:** Firebase Hosting
 
-## 🚀 Instalación Local
+##  Instalación Local
 
 Si quieres correr este proyecto en tu máquina:
 
