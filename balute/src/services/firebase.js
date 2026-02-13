@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import {
-  getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, setDoc, getDoc, where, getDocs, deleteDoc, updateDoc, limit, startAfter
+  getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, setDoc, getDoc, where, getDocs, deleteDoc, updateDoc, limit, startAfter, initializeFirestore, persistentLocalCache, persistentMultipleTabManager
 } from 'firebase/firestore';
 import {
   getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut
@@ -16,9 +16,15 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
 
-// Inicializa Firebase y exporta las instancias
+// Inicializa Firebase y exporta las instancias con la configuración de persistencia correcta para evitar warnings
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
+
 export const auth = getAuth(app);
 
 // --- SERVICIOS DE AUTENTICACIÓN ---
@@ -59,57 +65,19 @@ export const updateUserProfile = (uid, data) => {
   return setDoc(userDocRef, data, { merge: true });
 };
 
-// Obtener el email del admin
-export const getAdminEmail = async () => {
-  const adminCollectionRef = collection(db, 'adminEmails'); // tu colección correcta
-  const snapshot = await getDocs(adminCollectionRef);
-  if (!snapshot.empty) {
-    return snapshot.docs[0].data().email.trim(); // trim() elimina espacios extra
-  }
-  console.error("Documento de administrador no encontrado.");
-  return null;
-};
+// ELIMINADO: getAdminEmail() - Ya no se usa colección adminEmails
 
-// Devuelve el UID del primer admin (asumiendo 1 admin) tomando el id del doc en adminEmails
-export const getFirstAdminUid = async () => {
-  try {
-    const adminCollectionRef = collection(db, 'adminEmails');
-    const snapshot = await getDocs(adminCollectionRef);
-    if (!snapshot.empty) {
-      // Los docs tienen id = adminUid según tu estructura
-      return snapshot.docs[0].id;
-    }
-  } catch (e) {
-    console.warn('getFirstAdminUid error', e);
-  }
-  return null;
-};
+// ELIMINADO: getFirstAdminUid() - Causaba bug donde todos veían datos del primer admin
 
 
-// Verificar si un email es de un viewer
-export const isViewer = async (email) => {
-  if (!email) return false;
-  const normalized = String(email).trim().toLowerCase();
-  try {
-    const ref = collection(db, 'viewers');
-    const q1 = query(ref, where('email', '==', normalized), limit(1));
-    const s1 = await getDocs(q1);
-    if (!s1.empty) return true;
-    // también permitir doc id = email
-    const d1 = await getDoc(doc(db, 'viewers', normalized));
-    if (d1.exists()) return true;
-  } catch (e) {
-    console.warn('isViewer: error consultando viewers', e);
-  }
-  return false;
-};
+// ELIMINADO: isViewer() - Viewers ya no se auto-registran, solo por invitación
 
 // Obtener datos de un viewer (para encontrar su adminUid)
 // getViewerData eliminado (no usado). La fuente de verdad es viewers/{email}
 
 // Suscribirse a las actualizaciones de transacciones (para carga inicial en tiempo real)
 export const subscribeToTransactions = (userId, callback) => {
-  if (!userId) return () => {}; // Si no hay userId, no hacer nada
+  if (!userId) return () => { }; // Si no hay userId, no hacer nada
   const transactionsPath = `users/${userId}/transactions`;
   // Escuchar todas las transacciones ordenadas por fecha (sin límite)
   const q = query(collection(db, transactionsPath), orderBy('timestamp', 'desc'));
@@ -185,9 +153,16 @@ export const updateTransaction = (userId, transactionId, data) => {
 
 // --- GESTIÓN DE VIEWERS ---
 
-export const subscribeToViewers = (callback) => {
+// Suscribirse a viewers del admin actual (filtrado por ownerUid)
+export const subscribeToViewers = (adminUid, callback) => {
+  if (!adminUid) {
+    callback([]);
+    return () => { };
+  }
+
   const viewersRef = collection(db, 'viewers');
-  const q = query(viewersRef, orderBy('email'));
+  // Filtrar solo viewers cuyo ownerUid coincida con el admin actual
+  const q = query(viewersRef, where('ownerUid', '==', adminUid), orderBy('email'));
 
   return onSnapshot(q, (snapshot) => {
     const viewers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -231,4 +206,144 @@ export const getViewerOwnerUidByEmail = async (email) => {
     console.warn('getViewerOwnerUidByEmail error', e);
   }
   return null;
+};
+
+// Obtener todas las billeteras disponibles para un usuario (propia + compartidas)
+export const getAvailableWallets = async (userUid, userEmail) => {
+  const wallets = [];
+
+  try {
+    // 1. Siempre agregar billetera propia
+    const userDoc = await getDoc(doc(db, `users/${userUid}`));
+    if (userDoc.exists()) {
+      wallets.push({
+        id: userUid,
+        name: 'Mi Billetera',
+        ownerEmail: userEmail,
+        isOwner: true
+      });
+    }
+
+    // 2. Buscar billeteras compartidas (donde soy viewer)
+    const viewersRef = collection(db, 'viewers');
+    const normalized = String(userEmail).trim().toLowerCase();
+    const q = query(viewersRef, where('email', '==', normalized));
+    const snapshot = await getDocs(q);
+
+    for (const viewerDoc of snapshot.docs) {
+      const data = viewerDoc.data();
+      const ownerUid = data.ownerUid;
+
+      // Obtener info del dueño
+      const ownerDoc = await getDoc(doc(db, `users/${ownerUid}`));
+      if (ownerDoc.exists()) {
+        const ownerData = ownerDoc.data();
+        wallets.push({
+          id: ownerUid,
+          name: `Billetera de ${ownerData.email || 'Usuario'}`,
+          ownerEmail: ownerData.email,
+          isOwner: false
+        });
+      }
+    }
+
+
+
+    return wallets;
+  } catch (error) {
+    console.error('Error obteniendo billeteras:', error);
+    return wallets; // Retornar al menos la billetera propia
+  }
+};
+
+// --- NUEVAS FUNCIONES PARA SISTEMA MODERNO DE VIEWERS ---
+
+// Buscar usuario por email (para verificar si existe antes de compartir)
+export const findUserByEmail = async (email) => {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized) return null;
+
+  try {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', normalized), limit(1));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      const userDoc = snapshot.docs[0];
+      return {
+        uid: userDoc.id,
+        ...userDoc.data()
+      };
+    }
+  } catch (e) {
+    console.warn('findUserByEmail error', e);
+  }
+  return null;
+};
+
+// Compartir billetera con otro usuario (convertirlo en viewer)
+export const shareWalletWithUser = async (targetUserUid, ownerUid) => {
+
+  if (!targetUserUid || !ownerUid) {
+    throw new Error('Se requieren targetUserUid y ownerUid');
+  }
+
+  try {
+    // Obtener email del usuario objetivo
+    const targetUserDoc = await getDoc(doc(db, `users/${targetUserUid}`));
+
+    if (!targetUserDoc.exists()) {
+      throw new Error('Usuario objetivo no encontrado');
+    }
+
+    const targetEmail = targetUserDoc.data().email;
+
+    // Crear entrada en viewers
+    const normalized = String(targetEmail).trim().toLowerCase();
+    await setDoc(doc(db, 'viewers', normalized), {
+      email: normalized,
+      ownerUid: ownerUid,
+      sharedAt: new Date()
+    });
+
+    // NOTA: No actualizamos el documento del usuario aquí porque no tenemos permisos.
+    // El usuario detectará automáticamente que es viewer cuando inicie sesión
+    // al verificar la colección viewers en getViewerOwnerUidByEmail()
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error en shareWalletWithUser:', error);
+    throw error;
+  }
+};
+
+// Dejar de compartir billetera (revertir viewer a admin)
+export const unshareWalletWithUser = async (targetUserUid) => {
+
+  if (!targetUserUid) {
+    throw new Error('Se requiere targetUserUid');
+  }
+
+  try {
+    // Obtener email del usuario
+    const targetUserDoc = await getDoc(doc(db, `users/${targetUserUid}`));
+    if (!targetUserDoc.exists()) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    const targetEmail = targetUserDoc.data().email;
+    const normalized = String(targetEmail).trim().toLowerCase();
+
+    // Eliminar de viewers
+    await deleteDoc(doc(db, 'viewers', normalized));
+
+    // NOTA: No actualizamos el documento del usuario aquí porque no tenemos permisos.
+    // El usuario volverá a ser admin automáticamente cuando inicie sesión
+    // al no encontrar su email en la colección viewers
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error en unshareWalletWithUser:', error);
+    throw error;
+  }
 };

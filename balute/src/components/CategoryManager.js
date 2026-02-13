@@ -28,9 +28,23 @@ export default function CategoryManager() {
     setNewCat('');
   };
 
-  const onDelete = async (id) => {
+  const onDelete = async (id, categoryName) => {
     if (!uid) return;
-    if (!window.confirm('¿Eliminar esta categoría?')) return;
+
+    // Verificar si la categoría está siendo usada
+    const { checkCategoryInUse, countTransactionsWithCategory } = await import('../services/categories');
+    const inUse = await checkCategoryInUse(uid, categoryName);
+
+    if (inUse) {
+      const count = await countTransactionsWithCategory(uid, categoryName);
+      alert(
+        `No puedes borrar la categoría "${categoryName}" porque hay ${count} transacción(es) usándola.\n\n` +
+        `Primero cambia la categoría de esas transacciones o elimínalas.`
+      );
+      return;
+    }
+
+    if (!window.confirm(`¿Eliminar la categoría "${categoryName}"?`)) return;
     await deleteCategory(uid, id);
   };
 
@@ -80,7 +94,7 @@ export default function CategoryManager() {
               <>
                 <span className="flex-1">{c.name}</span>
                 <button onClick={() => onStartEdit(c.id, c.name)} className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 rounded text-white text-sm">Renombrar</button>
-                <button onClick={() => onDelete(c.id)} className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-sm">Eliminar</button>
+                <button onClick={() => onDelete(c.id, c.name)} className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-sm">Eliminar</button>
               </>
             )}
           </div>

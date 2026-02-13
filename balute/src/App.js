@@ -10,11 +10,11 @@ import NavBar from './components/NavBar';
 import SettingsDrawer from './components/SettingsDrawer';
 import CategoryManager from './components/CategoryManager';
 import CsvImporter from './components/CsvImporter.jsx';
-import BudgetGauge from './components/BudgetGauge';
 import AppLayout from './components/layout/AppLayout.jsx';
 import AddTransactionButton from './components/AddTransactionButton';
 import Modal from './components/Modal';
 import BalanceCard from './components/BalanceCard';
+import WalletSelector from './components/WalletSelector';
 
 // Servicios Firebase
 import * as firebase from './services/firebase';
@@ -22,10 +22,14 @@ import { subscribeToCategories } from './services/categories';
 
 
 function App() {
-  // --- Estados ---
+  // --- Estado de autenticación y billeteras ---
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
-  const [dataOwnerId, setDataOwnerId] = useState(null); // NUEVO: ID del dueño de los datos a mostrar
+  const [wallets, setWallets] = useState([]); // Array de billeteras disponibles
+  const [activeWalletId, setActiveWalletId] = useState(null); // ID de billetera activa
+
+  // Helper: ¿Puede editar la billetera activa?
+  const canEdit = wallets.find(w => w.id === activeWalletId)?.isOwner ?? false;
+
   const [isSigningUp, setIsSigningUp] = useState(false);
 
   const [transactions, setTransactions] = useState([]);
@@ -41,7 +45,7 @@ function App() {
   // UI State (tabs/settings)
   const [tab, setTab] = useState('dashboard'); // dashboard | historial | stats | opt
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [monthlyGoal, setMonthlyGoal] = useState(0);
+
 
   const [txModalOpen, setTxModalOpen] = useState(false);
 
@@ -57,44 +61,30 @@ function App() {
 
       if (currentUser) {
         const userProfile = await firebase.getUserProfile(currentUser.uid);
-        const fetchedRole = userProfile.exists() ? userProfile.data().role?.toLowerCase() : null;
-        setRole(fetchedRole);
 
-        if (fetchedRole === 'admin') {
-          // Si es admin, el dueño de los datos es él mismo
-          setDataOwnerId(currentUser.uid);
-        } else if (fetchedRole === 'viewer') {
-          // Si es viewer, intentamos usar ownerUid del perfil; si falta, reparamos desde viewers/{email}
-          let ownerUid = userProfile.data()?.ownerUid || null;
-          if (!ownerUid) {
-            const email = userProfile.data()?.email || currentUser.email;
-            try {
-              let foundOwner = await firebase.getViewerOwnerUidByEmail(email);
-              if (!foundOwner) {
-                // Fallback: primer admin conocido
-                foundOwner = await firebase.getFirstAdminUid();
-              }
-              if (foundOwner) {
-                await firebase.updateUserProfile(currentUser.uid, { ownerUid: foundOwner });
-                ownerUid = foundOwner;
-              }
-            } catch (e) {
-              console.warn('No se pudo reparar ownerUid del viewer', e);
-            }
-          }
-          if (ownerUid) setDataOwnerId(String(ownerUid));
-          else {
-            showNotification('Error: Falta ownerUid en el perfil del viewer.', 'error');
-            setDataOwnerId(null);
-          }
-        } else {
-          // Rol no reconocido o sin rol
-          setDataOwnerId(null);
+        // Si el usuario NO tiene perfil, crearlo como admin
+        if (!userProfile.exists()) {
+          await firebase.createUserProfile(currentUser.uid, {
+            role: 'admin',
+            email: currentUser.email
+          });
+          // Las billeteras se cargarán automáticamente después
+          setIsLoading(false);
+          return;
+        }
+
+        // Cargar todas las billeteras disponibles (propia + compartidas)
+        const availableWallets = await firebase.getAvailableWallets(currentUser.uid, currentUser.email);
+        setWallets(availableWallets);
+
+        // Establecer billetera activa (por defecto, la propia)
+        if (availableWallets.length > 0) {
+          setActiveWalletId(currentUser.uid); // Siempre empezar con tu billetera
         }
       } else {
         // No hay usuario logueado
-        setRole(null);
-        setDataOwnerId(null);
+        setWallets([]);
+        setActiveWalletId(null);
       }
       setIsLoading(false); // Terminamos de cargar
     });
@@ -149,20 +139,16 @@ function App() {
       unsubscribeTransactionsRef.current();
     }
 
-    if (dataOwnerId) {
+    if (activeWalletId) {
       // Suscripción a transacciones
-      const unsubTx = firebase.subscribeToTransactions(dataOwnerId, (newTransactions) => {
+      const unsubTx = firebase.subscribeToTransactions(activeWalletId, (newTransactions) => {
         // Debug: log last transaction seen and its amount
-        if (newTransactions && newTransactions.length > 0) {
-          const last = newTransactions[0];
-          console.debug('[SNAPSHOT] last tx', { id: last.id, amount: last.amount, type: last.type, desc: last.description });
-        }
         setTransactions(newTransactions);
         calculateBalance(newTransactions);
       });
 
       // Suscripción a categorías del mismo dueño
-      const unsubCats = subscribeToCategories(dataOwnerId, setCategories);
+      const unsubCats = subscribeToCategories(activeWalletId, setCategories);
 
       // Guardar limpieza combinada
       unsubscribeTransactionsRef.current = () => {
@@ -182,7 +168,7 @@ function App() {
         unsubscribeTransactionsRef.current = null;
       }
     };
-  }, [dataOwnerId, calculateBalance]);
+  }, [activeWalletId, calculateBalance]);
 
   const toDateSafe = (ts) => {
     if (!ts) return null;
@@ -206,37 +192,20 @@ function App() {
   };
 
   // --- Manejo de autenticación ---
-  // --- Manejo de autenticación ---
   const handleSignUp = async (email, password) => {
     try {
-      // Lógica Multi-Usuario:
-      // 1. Si está en la lista de viewers, es viewer.
-      // 2. Si no, es un nuevo Admin (crea su propia cuenta).
-      let newRole = 'admin';
-      if (await firebase.isViewer(email)) {
-        newRole = 'viewer';
-      }
-
+      // NUEVO MODELO: Todos los usuarios se registran como admins independientes
+      // Viewers solo se crean por invitación explícita del admin
       const userCredential = await firebase.signUp(email, password);
 
-      if (newRole === 'viewer') {
-        let ownerUid = await firebase.getViewerOwnerUidByEmail(email);
-        if (!ownerUid) {
-          // Fallback: si no está en viewers, usar el primer admin registrado
-          ownerUid = await firebase.getFirstAdminUid();
-        }
-        if (!ownerUid) {
-          showNotification('Error: No se pudo asignar owner al viewer. Contacta al administrador.', 'error');
-          return;
-        }
-        await firebase.createUserProfile(userCredential.user.uid, { role: newRole, email, ownerUid });
-      } else {
-        // Nuevo Admin: crea su perfil independiente
-        await firebase.createUserProfile(userCredential.user.uid, { role: newRole, email });
-      }
+      // Crear perfil como admin independiente
+      await firebase.createUserProfile(userCredential.user.uid, {
+        role: 'admin',
+        email
+      });
 
       setIsSigningUp(false);
-      showNotification(`¡Registro exitoso! Bienvenido a tu cuenta (${newRole}).`, 'success');
+      showNotification('¡Cuenta creada! Bienvenido a tu billetera personal.', 'success');
     } catch (error) {
       console.error("Error al registrarse:", error);
       showNotification(`Error al registrarse: ${error.message}`, 'error');
@@ -263,14 +232,13 @@ function App() {
 
   // --- Manejo de transacciones ---
   const handleAddTransaction = async (transactionData) => {
-    if (role !== 'admin' || !dataOwnerId) {
+    if (!canEdit || !activeWalletId) {
       showNotification('No tienes permiso para agregar transacciones.', 'error');
       return;
     }
     try {
       // Debug: ver qué llega y cómo se parsea
-      console.debug('[ADD] raw amount=', transactionData.amount, 'parsed=', getAmount(transactionData.amount));
-      await firebase.addTransaction(dataOwnerId, {
+      await firebase.addTransaction(activeWalletId, {
         ...transactionData,
         amount: Math.round(getAmount(transactionData.amount) * 100) / 100,
         timestamp: new Date(),
@@ -283,14 +251,14 @@ function App() {
   };
 
   const handleDeleteTransaction = async (id) => {
-    if (role !== 'admin' || !dataOwnerId) {
+    if (!canEdit || !activeWalletId) {
       showNotification('No tienes permiso para eliminar transacciones.', 'error');
       return;
     }
     if (!window.confirm('¿Estás seguro de que quieres eliminar esta transacción?')) return;
 
     try {
-      await firebase.deleteTransaction(dataOwnerId, id);
+      await firebase.deleteTransaction(activeWalletId, id);
       showNotification('Transacción eliminada con éxito.', 'success');
     } catch (error) {
       console.error("Error al eliminar la transacción:", error);
@@ -301,15 +269,14 @@ function App() {
   const handleStartEdit = (transaction) => setEditingTransaction(transaction);
 
   const handleUpdateTransaction = async (updatedData) => {
-    if (role !== 'admin' || !dataOwnerId) {
+    if (!canEdit || !activeWalletId) {
       showNotification('No tienes permiso para editar transacciones.', 'error');
       return;
     }
     try {
       const { id, ...dataToUpdate } = updatedData;
-      console.debug('[UPDATE] raw amount=', dataToUpdate.amount, 'parsed=', getAmount(dataToUpdate.amount));
       const parsed = { ...dataToUpdate, amount: Math.round(getAmount(dataToUpdate.amount) * 100) / 100 };
-      await firebase.updateTransaction(dataOwnerId, id, parsed);
+      await firebase.updateTransaction(activeWalletId, id, parsed);
       showNotification('Transacción actualizada con éxito.', 'success');
       setEditingTransaction(null);
     } catch (error) {
@@ -334,29 +301,52 @@ function App() {
   );
 
   return (
-    <AppLayout title="Control de Finanzas" notification={notification} onSignOut={handleSignOut}>
+    <AppLayout notification={notification}>
+      {/* Header Responsive */}
+      <header className="bg-gray-800/80 backdrop-blur-md shadow-lg sticky top-0 z-10 w-full max-w-xl mx-auto rounded-b-xl border-x border-b border-gray-700/50 mb-4">
+        <div className="p-4 flex flex-col gap-3">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+              Mis Finanzas
+            </h1>
+            <button
+              onClick={handleSignOut}
+              className="text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white py-1.5 px-3 rounded-full transition-all"
+            >
+              Salir
+            </button>
+          </div>
+
+          {/* Info usuario y Selector */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="text-xs text-gray-400 px-1 bg-gray-900/50 py-1 rounded-md inline-block self-start sm:self-auto">
+              <span className="text-gray-500 mr-1">Usuario:</span> <span className="text-blue-300 font-medium">{user.email}</span>
+            </div>
+            <div className="w-full sm:w-auto">
+              <WalletSelector
+                wallets={wallets}
+                activeWalletId={activeWalletId}
+                onWalletChange={setActiveWalletId}
+              />
+            </div>
+          </div>
+        </div>
+      </header>
       {/* Contenedor principal de tarjetas por pestaña */}
-      <div className="w-full max-w-lg pb-28 md:pb-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 7rem)' }}>
+      {/* Contenedor principal de tarjetas por pestaña - Aumentado padding bottom */}
+      <div className="w-full max-w-xl mx-auto mt-4 px-4 pb-32 md:pb-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 9rem)' }}>
         {/* Admin quick tools (arriba) */}
         {/* (El formulario se abrirá en un modal vía FAB) */}
+
+        {/* Selector de billeteras */}
+        {/* Info usuario y Selector de billeteras */}
+
 
         {/* Dashboard */}
         {tab === 'dashboard' && (
           <div className="bg-gray-800 p-8 rounded-lg shadow-xl mb-6">
             <BalanceCard balance={balance} />
-            <div className="mt-4 space-y-3">
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <label className="text-sm text-gray-400 md:order-1 md:mr-2">Meta mensual</label>
-                <input
-                  type="number"
-                  value={monthlyGoal}
-                  onChange={(e) => setMonthlyGoal(Number(e.target.value) || 0)}
-                  placeholder="Objetivo mensual ($)"
-                  className="w-full md:flex-1 p-2 rounded bg-gray-700 text-white border border-gray-600"
-                />
-              </div>
-              <BudgetGauge spent={totalSpentThisMonth()} goal={monthlyGoal} />
-            </div>
+
           </div>
         )}
 
@@ -365,7 +355,7 @@ function App() {
           <div className="bg-gray-800 p-8 rounded-lg shadow-xl mb-6">
             <TransactionList
               transactions={transactions}
-              role={role}
+              canEdit={canEdit}
               onDelete={handleDeleteTransaction}
               onEdit={(tx) => { handleStartEdit(tx); setTxModalOpen(true); }}
             />
@@ -383,17 +373,17 @@ function App() {
         <NavBar
           tab={tab}
           onChange={setTab}
-          onOpenSettings={role === 'admin' ? () => setSettingsOpen(true) : undefined}
+          onOpenSettings={canEdit ? () => setSettingsOpen(true) : undefined}
         />
 
         {/* FAB central para admins */}
-        {role === 'admin' && (
+        {canEdit && (
           <AddTransactionButton onClick={() => { setEditingTransaction(null); setTxModalOpen(true); }} />
         )}
       </div>
 
       {/* Drawer de ajustes solo para admin */}
-      <SettingsDrawer open={settingsOpen && role === 'admin'} onClose={() => setSettingsOpen(false)} title="Ajustes">
+      <SettingsDrawer open={settingsOpen && canEdit} onClose={() => setSettingsOpen(false)} title="Ajustes">
         <div className="space-y-6">
           <div className="hidden md:block">
             <h4 className="font-semibold mb-2">Importar CSV</h4>
@@ -404,8 +394,8 @@ function App() {
             <CategoryManager />
           </div>
           <div>
-            <h4 className="font-semibold mb-2">Gestión de espectadores</h4>
-            <ViewerManagement />
+            <h4 className="font-semibold mb-2">Compartir Billetera</h4>
+            <ViewerManagement userId={user?.uid} />
           </div>
         </div>
       </SettingsDrawer>

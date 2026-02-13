@@ -47,7 +47,10 @@ const Statistics = ({ transactions }) => {
   // Opciones de categoría derivadas de las transacciones
   const categoryOptions = useMemo(() => {
     const set = new Set();
-    (transactions || []).forEach(t => set.add(t?.category || 'Otros'));
+    (transactions || []).forEach(t => {
+      const cat = t?.category ? String(t.category).trim() : 'Otros';
+      set.add(cat);
+    });
     return ['todas', ...Array.from(set).sort((a, b) => a.localeCompare(b))];
   }, [transactions]);
 
@@ -115,7 +118,11 @@ const Statistics = ({ transactions }) => {
 
     // Aplicar filtro por categoría si corresponde
     if (selectedCategory && selectedCategory !== 'todas') {
-      return timeFiltered.filter(t => (t?.category || 'Otros') === selectedCategory);
+      return timeFiltered.filter(t => {
+        const cat = t?.category ? String(t.category).trim() : 'Otros';
+        // Comparación flexible (trim)
+        return cat === selectedCategory;
+      });
     }
     return timeFiltered;
   }, [transactions, filterType, customStartDate, customEndDate, selectedCategory]);

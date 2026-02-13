@@ -2,13 +2,13 @@
 // CRUD y suscripción de categorías personalizadas por usuario
 
 import { db } from './firebase';
-import { collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot, query, orderBy, setDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot, query, orderBy, setDoc, where, limit, getDocs } from 'firebase/firestore';
 
 const path = (uid) => `users/${uid}/categories`;
 
 // Suscripción en tiempo real a categorías del usuario, ordenadas por nombre
 export function subscribeToCategories(uid, cb) {
-  if (!uid) return () => {};
+  if (!uid) return () => { };
   const q = query(collection(db, path(uid)), orderBy('name'));
   return onSnapshot(
     q,
@@ -43,7 +43,23 @@ export function deleteCategory(uid, id) {
   return deleteDoc(doc(db, path(uid), id));
 }
 
-export function renameCategory(uid, id, name) {
-  if (!uid) throw new Error('UID requerido');
-  return updateDoc(doc(db, path(uid), id), { name });
-}
+export const renameCategory = async (userId, categoryId, newName) => {
+  const categoryDocRef = doc(db, `users/${userId}/categories/${categoryId}`);
+  return updateDoc(categoryDocRef, { name: newName });
+};
+
+// Verificar si una categoría está siendo usada por transacciones
+export const checkCategoryInUse = async (userId, categoryName) => {
+  const transactionsRef = collection(db, `users/${userId}/transactions`);
+  const q = query(transactionsRef, where('category', '==', categoryName), limit(1));
+  const snapshot = await getDocs(q);
+  return !snapshot.empty;
+};
+
+// Contar cuántas transacciones usan una categoría
+export const countTransactionsWithCategory = async (userId, categoryName) => {
+  const transactionsRef = collection(db, `users/${userId}/transactions`);
+  const q = query(transactionsRef, where('category', '==', categoryName));
+  const snapshot = await getDocs(q);
+  return snapshot.size;
+};
