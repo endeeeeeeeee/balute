@@ -185,7 +185,7 @@ export default function CsvImporter() {
             className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded transition-colors shadow flex items-center gap-1"
             title="Descargar archivo de ejemplo compatible con Excel"
           >
-            📥 Bajar Plantilla
+            Bajar Plantilla
           </button>
         </div>
 

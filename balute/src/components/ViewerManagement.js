@@ -132,16 +132,16 @@ const ViewerManagement = ({ userId, currentUserEmail }) => {
       {searchResult && (
         <div className="bg-gray-700 p-4 rounded-md mb-6">
           <h3 className="font-semibold mb-2">Usuario encontrado:</h3>
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-lg">{searchResult.email}</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="w-full sm:w-auto overflow-hidden">
+              <p className="text-lg truncate" title={searchResult.email}>{searchResult.email}</p>
               <p className="text-sm text-gray-400">
                 Rol actual: {searchResult.role === 'admin' ? 'Admin' : 'Viewer'}
               </p>
             </div>
             <button
               onClick={handleShareWallet}
-              className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md"
+              className="w-full sm:w-auto bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors"
             >
               Compartir mi billetera
             </button>
@@ -162,16 +162,16 @@ const ViewerManagement = ({ userId, currentUserEmail }) => {
         ) : (
           <ul className="space-y-2">
             {viewers.map((viewer) => (
-              <li key={viewer.id} className="flex justify-between items-center bg-gray-700 p-3 rounded-md">
-                <div>
-                  <span className="font-medium">{viewer.email}</span>
+              <li key={viewer.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-700 p-3 rounded-md gap-3">
+                <div className="w-full sm:w-auto overflow-hidden">
+                  <span className="font-medium truncate block" title={viewer.email}>{viewer.email}</span>
                   <p className="text-xs text-gray-400">
                     Compartido el {viewer.sharedAt ? new Date(viewer.sharedAt.seconds * 1000).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
                 <button
                   onClick={() => handleUnshareWallet(viewer.email)}
-                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-md text-sm"
+                  className="w-full sm:w-auto bg-red-500 hover:bg-red-700 text-white font-bold py-1.5 px-3 rounded-md text-sm transition-colors"
                 >
                   Dejar de compartir
                 </button>
